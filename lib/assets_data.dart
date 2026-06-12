@@ -1,3 +1,4 @@
+/// Holds image asset paths used by the connection state screens.
 class AssetsData {
   static const String noWifi = 'assets/images/no_wifi.png';
   static const String slow = 'assets/images/slow.png';

@@ -1,83 +1,56 @@
-import 'dart:async';
-
+import 'package:connection_test/app_strings.dart';
 import 'package:connection_test/assets_data.dart';
+import 'package:connection_test/connection_service.dart';
 import 'package:flutter/material.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
 
-class NoConnectionScreen extends StatefulWidget {
-  const NoConnectionScreen({super.key});
+/// Displays offline UX without performing connection checks itself.
+///
+/// [ConnectionService] decides the status and passes it to this widget.
+class NoConnectionScreen extends StatelessWidget {
+  const NoConnectionScreen({super.key, required this.status})
+    // This screen only supports the two offline states.
+    : assert(
+        status == ConnectionStatus.noNetwork ||
+            status == ConnectionStatus.noInternet,
+      );
 
-  @override
-  State<NoConnectionScreen> createState() => _NoConnectionScreenState();
-}
-
-class _NoConnectionScreenState extends State<NoConnectionScreen> {
-  bool _isConnected = false;
-  final Connectivity _connectivity = Connectivity();
-  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
-
-  @override
-  void initState() {
-    super.initState();
-    _initConnectivity();
-    _connectivitySubscription = _connectivity.onConnectivityChanged.listen(
-      _handleConnectivityChange,
-    );
-  }
-
-  Future<void> _initConnectivity() async {
-    try {
-      final List<ConnectivityResult> results =
-          await _connectivity.checkConnectivity();
-      _updateConnectionStatus(results);
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _isConnected = false);
-    }
-  }
-
-  void _handleConnectivityChange(List<ConnectivityResult> results) {
-    _updateConnectionStatus(results);
-  }
-
-  void _updateConnectionStatus(List<ConnectivityResult> results) {
-    setState(() {
-      _isConnected =
-          results.isNotEmpty && results.first != ConnectivityResult.none;
-    });
-  }
-
-  @override
-  void dispose() {
-    _connectivitySubscription?.cancel();
-    super.dispose();
-  }
+  final ConnectionStatus status;
 
   @override
   Widget build(BuildContext context) {
+    // noInternet means a network exists but cannot reach the internet.
+    final hasNetwork = status == ConnectionStatus.noInternet;
+    final image = hasNetwork ? AssetsData.slow : AssetsData.noWifi;
+    final title =
+        hasNetwork ? AppStrings.noInternetTitle : AppStrings.noNetworkTitle;
+    final message =
+        hasNetwork ? AppStrings.noInternetMessage : AppStrings.noNetworkMessage;
+
     return Scaffold(
       backgroundColor: Colors.teal.shade100,
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              height: 250,
-              child:
-                  _isConnected
-                      ? Image.asset(AssetsData.slow)
-                      : Image.asset(AssetsData.noWifi),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Image.asset(image, height: 250, fit: BoxFit.contain),
+                const SizedBox(height: 24),
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+              ],
             ),
-            const SizedBox(height: 20),
-            Center(
-              child: Text(
-                _isConnected
-                    ? 'No internet on this network.\nPlease try another.'
-                    : 'Not connected',
-                style: const TextStyle(fontSize: 20),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
